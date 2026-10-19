@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CS2 Nade Book</title>
+<link rel="stylesheet" href="style.css?v=20261006h">
+</head>
+<body>
+<header>
+  <h1>CS2 Nade Book <small class="ver" title="If this is not the newest build, press Ctrl+F5">build 20261006h</small></h1>
+  <select id="mapSel"></select><button id="poolBtn" title="Choose which maps are in the rotation">⚙ Map pool</button>
+  <div id="poolPanel" hidden></div>
+  <div class="filters" id="typeFilters"></div>
+  <select id="sideFilter">
+    <option value="">T + CT</option><option value="T">T</option><option value="CT">CT</option>
+  </select>
+  <select id="markMode" title="What the map markers show"><option value="land">Markers: landing spots</option><option value="throw">Markers: throw spots (arrows)</option></select>
+  <label class="xlabel" title="Only lineups with a real drawn crosshair screenshot"><input type="checkbox" id="xonly"> &#127919; crosshair only</label>
+  <label class="xlabel" title="Colour of the crosshair drawn on the screenshots"><input type="color" id="xhColor" value="#ff2b2b"> crosshair colour</label>
+  <select id="xhSize" title="Size of the crosshair drawn on the screenshots"><option value="0.6">crosshair: small</option><option value="1">crosshair: normal</option><option value="1.6">crosshair: large</option><option value="2.4">crosshair: extra large</option></select>
+  <select id="ageFilter" title="Hide lineups whose source was last updated longer ago than this"></select>
+  <select id="viewSel" title="Which lineups to show: hide the ones you discarded, only the ones you kept, ..."></select>
+  <select id="srcSel" title="Where the lineups come from"></select>
+  <input id="search" type="search" placeholder="Search name / tag / callout…">
+  <span class="spacer"></span>
+  <button id="addBtn" class="primary">+ New nade</button>
+  <button id="exportBtn">Export</button>
+  <button id="importBtn">Import</button>
+  <input type="file" id="importFile" accept=".json" hidden>
+</header>
+
+<main>
+  <section id="mapWrap">
+    <svg id="map" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="pickBanner" hidden></div>
+    <div id="lineupCard" hidden></div>
+    <div class="mapTools">
+      <label class="linkbtn">Use my own radar image<input type="file" id="radarFile" accept="image/*" hidden></label>
+      <button id="radarReset" class="linkbtn">Reset radar</button>
+      <label><input type="checkbox" id="showLabels" checked> callouts</label>
+      <label><input type="checkbox" id="showCard" checked> lineup preview</label>
+    </div>
+  </section>
+
+  <aside id="panel">
+    <div id="tabs"><button data-tab="nades" class="on">Nades</button><button data-tab="setups">Setups</button></div>
+    <div id="slist" hidden></div>
+    <div id="sdetail" hidden></div>
+    <div id="sform" hidden></div>
+    <div id="pdrill" hidden></div>
+    <div id="rdrill" hidden></div>
+    <div id="list"></div>
+    <div id="detail" hidden></div>
+    <div id="form" hidden></div>
+  </aside>
+</main>
+
+<script src="maps.js?v=20261006h"></script>
+<script src="callouts-generated.js?v=20261006h"></script>
+<script src="seed-dust2.js?v=20261006h"></script>
+<script src="seed-maps.js?v=20261006h"></script>
+<script src="app.js?v=20261006h"></script>
+<script src="setups.js?v=20261006h"></script>
+<script src="practice.js?v=20261006h"></script>
+<script src="review.js?v=20261006h"></script>
+</body>
+</html>
