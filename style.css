@@ -204,3 +204,5 @@ pre.cmd { background:#0c0e11; padding:6px 8px; border-radius:6px; overflow:auto;
 /* backup reminder */
 #backupBar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:7px 12px; background:#3a2e12; border-bottom:1px solid #6b5420; color:#ffd98a; font-size:13px; }
 #backupBar span { flex:1; min-width:200px; } #backupBar[hidden] { display:none; }
+
+#lineupCard:not(.hover) { cursor:move; } #lineupCard button, #lineupCard img, #lineupCard .citem { cursor:pointer; } #lineupCard { touch-action:none; }

@@ -388,6 +388,28 @@ function placeCard(el, a) {
   el.style.left = left + "px"; el.style.top = top + "px";
 }
 function renderLineupCard() {
+  baseRenderLineupCard();
+  const el = $("#lineupCard");
+  if (S.cardPos && !el.hidden && !el.classList.contains("hover")) { el.style.left = S.cardPos.x + "px"; el.style.top = S.cardPos.y + "px"; }
+}
+// drag the popup by its title or empty background; the place is remembered until you reload
+(() => {
+  const el = $("#lineupCard"); let d = null;
+  el.addEventListener("pointerdown", (ev) => {
+    if (ev.button || el.classList.contains("hover") || ev.target.closest("button,img,input,select,textarea,.citem,a")) return;
+    d = { dx: ev.clientX - el.offsetLeft, dy: ev.clientY - el.offsetTop, moved: false };
+    el.setPointerCapture(ev.pointerId); ev.preventDefault();
+  });
+  el.addEventListener("pointermove", (ev) => {
+    if (!d) return; d.moved = true;
+    const wrap = $("#mapWrap").getBoundingClientRect();
+    const x = Math.max(0, Math.min(ev.clientX - d.dx, wrap.width - 60)), y = Math.max(0, Math.min(ev.clientY - d.dy, wrap.height - 40));
+    S.cardPos = { x, y }; el.style.left = x + "px"; el.style.top = y + "px";
+  });
+  const end = () => { d = null; };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+})();
+function baseRenderLineupCard() {
   const el = $("#lineupCard"), hov = S.hoverId ? nadeById(S.hoverId) : null;
   const allowed = !S.editing && !S.practice && !S.review && !S.verify && S.tab === "nades" && $("#showCard").checked;
   const sel = nadeById(S.selId), n = hov || sel;
