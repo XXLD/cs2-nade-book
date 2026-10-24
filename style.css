@@ -184,3 +184,19 @@ pre.cmd { background:#0c0e11; padding:6px 8px; border-radius:6px; overflow:auto;
 #map .pvline { stroke-width:4; stroke-linecap:round; opacity:.95; pointer-events:none; filter:drop-shadow(0 0 3px #000); }
 #map .pvfrom { stroke:#fff; stroke-width:2.5; stroke-linejoin:round; pointer-events:none; }
 #map .pvring { fill:none; stroke-width:4; pointer-events:none; filter:drop-shadow(0 0 3px #000); }
+
+/* zoom: strokes and labels keep their screen size (--zs = 1 / zoom, set on the svg) */
+#map { touch-action:none; }
+#map .lbl { font-size:calc(17px * var(--zs, 1)); }
+#map .throw { stroke-width:calc(3px * var(--zs, 1)); }
+#map .branch { stroke-width:calc(1.6px * var(--zs, 1)); stroke-dasharray:calc(3px * var(--zs, 1)) calc(3px * var(--zs, 1)); }
+#map .pvline { stroke-width:calc(4px * var(--zs, 1)); }
+.zoombar { display:inline-flex; align-items:center; gap:6px; color:var(--txt); }
+.zoombar button:not(.linkbtn) { width:26px; height:26px; padding:0; font-size:16px; line-height:1; }
+#zoomLbl { min-width:38px; text-align:center; font-size:12px; color:var(--dim); }
+
+/* verify landing spots + tested flag */
+#vdrill h2 { margin:8px 0 4px; font-size:19px; } #vdrill .shotwrap { margin:6px 0; } #vdrill img.shot { width:100%; border-radius:8px; cursor:zoom-in; }
+#vdrill .rsticky { position:sticky; bottom:-10px; background:var(--bg); padding:8px 0 4px; margin-top:8px; border-top:1px solid var(--line); z-index:3; }
+#vdrill .rbtns button { padding:12px 6px; font-size:15px; } #vdrill button small { opacity:.6; font-weight:400; }
+.item.broken { border-left:3px solid #ff4d5e; }

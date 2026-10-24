@@ -186,7 +186,7 @@ function hiddenByAge() { const a = S.age; S.age = "0"; const rest = visible().fi
 const panelList = () => (S.cluster ? visible().filter((n) => S.cluster.includes(n.id)) : visible());
 function visible() {
   const q = S.q.toLowerCase();
-  return S.nades.filter((n) => n.map === S.map && S.types.has(n.type) && !tooOld(n) && (!S.xonly || hasCross(n)) && decisionOk(n) && sourceOk(n) &&
+  return S.nades.filter((n) => n.map === S.map && S.types.has(n.type) && !tooOld(n) && (!S.xonly || hasCross(n)) && decisionOk(n) && sourceOk(n) && testOk(n) &&
     (!S.side || n.side === S.side || n.side === "Both") &&
     (!q || [n.name, n.variant, n.purpose, n.notes, (n.tags || []).join(" "), nearestCallout(n.to.x, n.to.y)].join(" ").toLowerCase().includes(q)))
     .sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
@@ -200,7 +200,7 @@ function clusterList(list, key = "to") {
   const cl = [];
   for (const n of list) {
     const p = n[key];
-    const c = cl.find((k) => k.type === n.type && Math.hypot(k.x - p.x, k.y - p.y) <= CLUSTER_R);
+    const c = cl.find((k) => k.type === n.type && Math.hypot(k.x - p.x, k.y - p.y) <= CLUSTER_R / S.mapView.z);
     if (c) { c.items.push(n); c.x = c.items.reduce((s, i) => s + i[key].x, 0) / c.items.length; c.y = c.items.reduce((s, i) => s + i[key].y, 0) / c.items.length; }
     else cl.push({ id: "c:" + n.id, type: n.type, x: p.x, y: p.y, items: [n] });
   }
@@ -209,14 +209,14 @@ function clusterList(list, key = "to") {
 }
 // icons stay exactly on their spot; only when two icons would overlap the later one is nudged a short step (and tethered back)
 function spread(items) {
-  const pos = {}, placed = [], near = (q, t) => Math.hypot(q.x - t.x, q.y - t.y) < 13;
+  const z = S.mapView.z, pos = {}, placed = [], near = (q, t) => Math.hypot(q.x - t.x, q.y - t.y) < 13 / z;
   for (const it of items) {
     let p = { x: it.to.x, y: it.to.y };
     if (placed.some((q) => near(q, p))) {
       let found = false;
       for (let ring = 1; ring <= 3 && !found; ring++) {
         for (let k = 0; k < 6 && !found; k++) {
-          const ang = (k * Math.PI) / 3 - Math.PI / 2, t = { x: Math.round(it.to.x + Math.cos(ang) * 15 * ring), y: Math.round(it.to.y + Math.sin(ang) * 15 * ring) };
+          const ang = (k * Math.PI) / 3 - Math.PI / 2, t = { x: Math.round(it.to.x + Math.cos(ang) * 15 * ring / z), y: Math.round(it.to.y + Math.sin(ang) * 15 * ring / z) };
           if (!placed.some((q) => near(q, t))) { p = t; found = true; }
         }
       }
@@ -232,8 +232,8 @@ function drawPreview(id) {
   if (!n || !n.to) { layer.innerHTML = ""; return; }
   const c = NADE_TYPES[n.type].color;
   let h = "";
-  if (n.from) h += `<line class="pvline" stroke="${c}" x1="${n.from.x}" y1="${n.from.y}" x2="${n.to.x}" y2="${n.to.y}"/><path class="pvfrom" fill="${c}" d="M${n.from.x} ${n.from.y - 15} l13 25 h-26 z"/>`;
-  h += `<circle class="pvring" stroke="${c}" cx="${n.to.x}" cy="${n.to.y}" r="14"/><circle cx="${n.to.x}" cy="${n.to.y}" r="3.5" fill="${c}"/>`;
+  if (n.from) h += `<line class="pvline" stroke="${c}" x1="${n.from.x}" y1="${n.from.y}" x2="${n.to.x}" y2="${n.to.y}"/>` + pin(n.from.x, n.from.y, `<path class="pvfrom" fill="${c}" d="M${n.from.x} ${n.from.y - 15} l13 25 h-26 z"/>`);
+  h += pin(n.to.x, n.to.y, `<circle class="pvring" stroke="${c}" cx="${n.to.x}" cy="${n.to.y}" r="14"/><circle cx="${n.to.x}" cy="${n.to.y}" r="3.5" fill="${c}"/>`);
   layer.innerHTML = h;
 }
 // branches: a merged icon (hovered or clicked) shows a thin line to each member's exact landing spot
@@ -245,12 +245,39 @@ function drawBranches() {
   for (const c of S._clusters || []) {
     if (c.items.length < 2 || !want.includes(c.items.map((i) => i.id).join(","))) continue;
     const col = NADE_TYPES[c.type].color;
-    for (const n of c.items) { const q = n[key]; h += `<line class="branch" stroke="${col}" x1="${c.px}" y1="${c.py}" x2="${q.x}" y2="${q.y}"/><circle class="bdot" cx="${q.x}" cy="${q.y}" r="4.5" fill="${col}"/>`; }
+    for (const n of c.items) { const q = n[key]; h += `<line class="branch" stroke="${col}" x1="${c.px}" y1="${c.py}" x2="${q.x}" y2="${q.y}"/><circle class="bdot" cx="${q.x}" cy="${q.y}" r="${4.5 / S.mapView.z}" fill="${col}"/>`; }
   }
   layer.innerHTML = h;
 }
+// ---------- zoom + pan: the svg viewBox is a window of w x w grid units ----------
+S.mapView = { z: 1, x: 0, y: 0 };
+const ZMAX = 6;
+// anything that must stay the same size on screen is drawn scaled by 1/zoom around its own centre
+const pin = (x, y, inner) => `<g transform="translate(${x} ${y}) scale(${1 / S.mapView.z}) translate(${-x} ${-y})">${inner}</g>`;
+function applyView() {
+  const v = S.mapView, w = 1000 / v.z;
+  v.x = Math.max(0, Math.min(1000 - w, v.x)); v.y = Math.max(0, Math.min(1000 - w, v.y));
+  const svg = $("#map");
+  svg.setAttribute("viewBox", `${v.x} ${v.y} ${w} ${w}`);
+  svg.style.setProperty("--zs", 1 / v.z);
+  const l = $("#zoomLbl"); if (l) l.textContent = Math.round(v.z * 100) + "%";
+}
+let _vrf = 0;
+function afterView(full) {                     // redraw on the next frame (icons depend on zoom), or just move the popup when only panning
+  if (_vrf) return; _vrf = requestAnimationFrame(() => { _vrf = 0; if (full) renderMap(); renderLineupCard(); });
+}
+function setZoom(nz, cx, cy) {
+  const v = S.mapView, w0 = 1000 / v.z;
+  nz = Math.max(1, Math.min(ZMAX, nz));
+  if (cx == null) { cx = v.x + w0 / 2; cy = v.y + w0 / 2; }
+  const fx = (cx - v.x) / w0, fy = (cy - v.y) / w0, w1 = 1000 / nz;
+  v.z = nz; v.x = cx - fx * w1; v.y = cy - fy * w1;
+  applyView(); afterView(true);
+}
 function renderMap() {
   const m = MAPS[S.map], svg = $("#map");
+  if (S._viewMap !== S.map) { S.mapView = { z: 1, x: 0, y: 0 }; S._viewMap = S.map; }
+  applyView();
   const radar = localStorage.getItem(radarKey()) || (S.fileRadar[S.map] ? `radars/${S.map}.png` : null);
   let h = radar ? `<image href="${radar}" width="1000" height="1000" opacity=".9"/>` : (m.shapes || "");
   if ($("#showLabels").checked) h += m.callouts.map(([n, x, y]) => `<text class="lbl" x="${x}" y="${y}">${esc(n)}</text>`).join("");
@@ -263,8 +290,8 @@ function renderMap() {
   if (sel && sel.from && !practiceHidden()) {
     const c = NADE_TYPES[sel.type].color;   // the line always ends exactly on this lineup's own landing spot
     h += `<line class="throw" stroke="${c}" x1="${sel.from.x}" y1="${sel.from.y}" x2="${sel.to.x}" y2="${sel.to.y}"/>`;
-    h += `<circle cx="${sel.to.x}" cy="${sel.to.y}" r="12" fill="none" stroke="${c}" stroke-width="3"/><circle cx="${sel.to.x}" cy="${sel.to.y}" r="3" fill="${c}"/>`;
-    if (!throwMode) h += `<path class="from" fill="${c}" d="M${sel.from.x} ${sel.from.y - 12} l10 20 h-20z"/>`;
+    h += pin(sel.to.x, sel.to.y, `<circle cx="${sel.to.x}" cy="${sel.to.y}" r="12" fill="none" stroke="${c}" stroke-width="3"/><circle cx="${sel.to.x}" cy="${sel.to.y}" r="3" fill="${c}"/>`);
+    if (!throwMode) h += pin(sel.from.x, sel.from.y, `<path class="from" fill="${c}" d="M${sel.from.x} ${sel.from.y - 12} l10 20 h-20z"/>`);
   }
   const su = activeSetup(), inSu = new Set(su ? su.steps.map((s) => s.nadeId) : []);
   clusters.forEach((c) => { const q = cpos(c); c.px = q.x; c.py = q.y; });
@@ -278,7 +305,7 @@ function renderMap() {
       ? `<path d="M${p.x} ${p.y - 14} l${k > 1 ? 15 : 12} ${k > 1 ? 26 : 22} h-${k > 1 ? 30 : 24} z" fill="${col}"/><text x="${p.x}" y="${p.y + 7}">${ic}</text>`
       : `<circle cx="${p.x}" cy="${p.y}" r="${k > 1 ? 13 : 11}" fill="${col}"/><text x="${p.x}" y="${p.y + 4}">${ic}</text>`;
     const off = Math.hypot(p.x - c.x, p.y - c.y) > 2 ? `<line class="branch" stroke="${col}" x1="${c.x}" y1="${c.y}" x2="${p.x}" y2="${p.y}"/><circle class="bdot" cx="${c.x}" cy="${c.y}" r="3" fill="${col}"/>` : "";
-    return `<g class="mk ${isSel ? "sel" : ""} ${dim ? "dim" : ""} ${c.items.some((i) => i.decision === "keep") ? "kept" : ""}" data-ids="${ids.join(",")}" data-x="${p.x}" data-y="${p.y}">${off}${shape}
+    return `<g class="mk ${isSel ? "sel" : ""} ${dim ? "dim" : ""} ${c.items.some((i) => i.decision === "keep") ? "kept" : ""}" data-ids="${ids.join(",")}" data-x="${p.x}" data-y="${p.y}" transform="translate(${p.x} ${p.y}) scale(${1 / S.mapView.z}) translate(${-p.x} ${-p.y})">${off}${shape}
       ${k > 1 ? `<circle class="cnt" cx="${p.x + 11}" cy="${p.y - 11}" r="8"/><text class="cntTxt" x="${p.x + 11}" y="${p.y - 7.5}">${k}</text>` : ""}</g>`;
   }).join("");
   if (su) h += setupOverlay(su);
@@ -286,8 +313,8 @@ function renderMap() {
   // in-progress points while editing
   const e = S.editing;
   if (e) {
-    if (e.from) h += `<path fill="#fff" d="M${e.from.x} ${e.from.y - 12} l10 20 h-20z"/>`;
-    if (e.to) h += `<circle cx="${e.to.x}" cy="${e.to.y}" r="15" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="5 4"/>`;
+    if (e.from) h += pin(e.from.x, e.from.y, `<path fill="#fff" d="M${e.from.x} ${e.from.y - 12} l10 20 h-20z"/>`);
+    if (e.to) h += pin(e.to.x, e.to.y, `<circle cx="${e.to.x}" cy="${e.to.y}" r="15" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="5 4"/>`);
   }
   svg.innerHTML = h;
   svg.classList.toggle("picking", !!S.picking || !!S.fixLanding);
@@ -307,9 +334,9 @@ function renderList() {
   $("#list").innerHTML = (S.cluster ? `<div class="row"><b>${list.length} nades of the same type land here</b><button id="clearCluster" style="flex:none">Show all</button></div>` : "") +
     (hid ? `<p class="dim" style="font-size:12px">${hid} older lineup${hid === 1 ? "" : "s"} hidden (source updated more than ${S.age} months ago). <button class="linkbtn" id="showOld">Show them</button></p>` : "") +
     (list.length ? "" : `<p class="dim">No nades match. Click <b>+ New nade</b>${+S.age ? ", or widen the age filter" : ""}.</p>`) +
-    list.map((n) => `<div class="item ${n.decision === "keep" ? "kept" : n.decision === "discard" ? "discarded" : ""}" data-id="${n.id}">
+    list.map((n) => `<div class="item ${n.decision === "keep" ? "kept" : n.decision === "discard" ? "discarded" : ""} ${n.tested === "broken" ? "broken" : ""}" data-id="${n.id}">
       <div class="dot" style="background:${NADE_TYPES[n.type].color}">${NADE_TYPES[n.type].icon}</div>
-      <div style="flex:1"><b>${esc(n.name)}</b><br><small>${esc(n.variant)} · ${esc(n.side)} · ${esc(n.purpose)} · → ${esc(nearestCallout(n.to.x, n.to.y))}${pbadge(n)}${hasCross(n) ? " \u00b7 \ud83c\udfaf crosshair" : ""} \u00b7 ${esc(srcLabel(n))}</small></div>
+      <div style="flex:1"><b>${esc(n.name)}</b><br><small>${esc(n.variant)} · ${esc(n.side)} · ${esc(n.purpose)} · → ${esc(nearestCallout(n.to.x, n.to.y))}${pbadge(n)}${hasCross(n) ? " \u00b7 \ud83c\udfaf crosshair" : ""} \u00b7 ${esc(srcLabel(n))}${testNote(n)}</small></div>
       ${decButtons(n)}</div>`).join("");
 }
 
@@ -360,7 +387,7 @@ function placeCard(el, a) {
 }
 function renderLineupCard() {
   const el = $("#lineupCard"), hov = S.hoverId ? nadeById(S.hoverId) : null;
-  const allowed = !S.editing && !S.practice && !S.review && S.tab === "nades" && $("#showCard").checked;
+  const allowed = !S.editing && !S.practice && !S.review && !S.verify && S.tab === "nades" && $("#showCard").checked;
   const sel = nadeById(S.selId), n = hov || sel;
   // which card? single nade (hover or selected) > merged arrow under the mouse > merged arrow you clicked (nothing selected yet)
   let mode = null, ids = null, pos = null;
@@ -391,6 +418,7 @@ function renderLineupCard() {
     ${n.setpos ? `<div class="dim cardhint">Copy setpos \u2192 puts you on the exact spot with the exact crosshair angle.</div>` : ""}
     ${n.setpos ? `<button class="cardcopy">Copy setpos</button>` : ""}
     <div class="row" style="margin-top:6px"><button class="dbtn ${n.decision === "keep" ? "on keepOn" : ""}" data-dec="keep" data-id="${n.id}">✓ Keep</button><button class="dbtn ${n.decision === "discard" ? "on discOn" : ""}" data-dec="discard" data-id="${n.id}">✗ Discard</button></div>
+    <div class="row" style="margin-top:6px"><button class="dbtn ${n.tested === "ok" ? "on keepOn" : ""}" data-test="ok" data-id="${n.id}" style="font-size:12px">✓ Works in game</button><button class="dbtn ${n.tested === "broken" ? "on discOn" : ""}" data-test="broken" data-id="${n.id}" style="font-size:12px">✗ Broken</button></div>
     <div class="row" style="margin-top:6px"><button data-fix="${n.id}" style="font-size:12px" title="Then click the map where it really lands">📍 Fix landing spot</button></div>`;
   el.querySelector(".cardx").onclick = () => { S.cardClosed = n.id; S.hoverId = null; el.hidden = true; };
   const c = el.querySelector(".cardcopy"); if (c) c.onclick = () => { navigator.clipboard.writeText(n.setpos); c.textContent = "Copied!"; };
@@ -413,7 +441,7 @@ function renderForm() {
   el.hidden = !e;
   $("#pickBanner").hidden = !(S.picking || S.fixLanding);
   if (S.picking) $("#pickBanner").textContent = S.picking === "from" ? "Click the map where you STAND" : "Click the map where the nade LANDS";
-  if (S.fixLanding) $("#pickBanner").textContent = "Click the map where this nade really LANDS (Esc to cancel)";
+  if (S.fixLanding) $("#pickBanner").textContent = S.verify ? "Click the map where it really lands - or press Enter if the marker is already right" : "Click the map where this nade really LANDS (Esc to cancel)";
   if (!e) return;
   if (el.dataset.eid === e.id && el.children.length) { syncPointLabels(); return; } // don't wipe inputs mid-edit
   el.dataset.eid = e.id;
@@ -501,13 +529,16 @@ async function save() {
 // ---------- wiring ----------
 function refresh() {
   if (!S.editing) $("#form").dataset.eid = "";
-  renderMap(); renderList(); renderDetail(); renderForm(); renderSetups(); renderPractice(); renderReview(); renderLineupCard();
+  renderMap(); renderList(); renderDetail(); renderForm(); renderSetups(); renderPractice(); renderReview(); renderVerify(); renderLineupCard();
 }
 
 $("#map").addEventListener("click", async (ev) => {
+  if (S._dragged) return;                                 // that was a pan, not a click
   if (S.fixLanding) {                                     // "Fix landing spot": the next click on the map is the real landing spot
     const n = nadeById(S.fixLanding); S.fixLanding = null;
+    const prev = n ? { to: { ...n.to }, tags: [...(n.tags || [])], fixed: n.landingFixed } : null;
     if (n) { n.to = svgPoint(ev); n.landingFixed = true; n.tags = (n.tags || []).filter((t) => !t.startsWith("landing-")); await dbPut(n); }
+    if (n && S.verify) return verifyAfterFix(n, prev);
     return refresh();
   }
   if (S.picking && S.editing) {
@@ -550,6 +581,46 @@ $("#search").oninput = (ev) => { S.q = ev.target.value; refresh(); };
 $("#sideFilter").onchange = (ev) => { S.side = ev.target.value; refresh(); };
 $("#markMode").value = S.mode;
 $("#markMode").onchange = (ev) => { S.mode = ev.target.value; localStorage.setItem("mode", S.mode); S.cluster = null; refresh(); };
+{
+  const svg = $("#map"), pts = new Map();
+  let drag = null, pinch = null;
+  svg.addEventListener("wheel", (ev) => {
+    ev.preventDefault();
+    const p = svgPoint(ev);
+    setZoom(S.mapView.z * (ev.deltaY < 0 ? 1.2 : 1 / 1.2), p.x, p.y);
+  }, { passive: false });
+  svg.addEventListener("pointerdown", (ev) => {
+    S._dragged = false; pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (pts.size === 1) drag = { x: ev.clientX, y: ev.clientY, vx: S.mapView.x, vy: S.mapView.y };
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: S.mapView.z }; drag = null; }
+  });
+  window.addEventListener("pointermove", (ev) => {
+    if (!pts.has(ev.pointerId)) return;
+    pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    const r = svg.getBoundingClientRect();
+    if (pts.size === 2 && pinch) {                                           // two fingers: zoom
+      const [a, b] = [...pts.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      const mid = svgPoint({ clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 });
+      S._dragged = true; setZoom(pinch.z * (d / pinch.d), mid.x, mid.y); return;
+    }
+    if (!drag || S.mapView.z <= 1) return;                                      // one pointer: pan (only when zoomed in)
+    const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 5) S._dragged = true;
+    if (!S._dragged) return;
+    const k = (1000 / S.mapView.z) / r.width;                                   // screen px -> grid units
+    S.mapView.x = drag.vx - dx * k; S.mapView.y = drag.vy - dy * k;
+    applyView(); afterView(false);
+  });
+  const up = (ev) => { pts.delete(ev.pointerId); if (pts.size < 2) pinch = null; if (!pts.size) drag = null; };
+  window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
+  $("#zoomIn").onclick = () => setZoom(S.mapView.z * 1.4);
+  $("#zoomOut").onclick = () => setZoom(S.mapView.z / 1.4);
+  $("#zoomReset").onclick = () => { S.mapView = { z: 1, x: 0, y: 0 }; applyView(); afterView(true); };
+  window.addEventListener("keydown", (ev) => {
+    if (ev.target && /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName) || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (ev.key === "0" && !S.review && !S.practice) { S.mapView = { z: 1, x: 0, y: 0 }; applyView(); afterView(true); }
+  });
+}
 $("#map").addEventListener("mouseover", (ev) => {
   const g = ev.target.closest(".mk");
   const ids = g ? g.dataset.ids.split(",") : null;
@@ -650,18 +721,18 @@ async function seedStarterData() {
   for (const n of S.nades) if ((n.notes || "").startsWith("Template -")) delN.push(n.id);
   if (localStorage.getItem("seed") !== SEED_KEY) {
     // retire the earlier (2024-era) starter set - but keep any of them you already worked on
-    const untouched = (n) => !(n.images || []).length && !n.setpos && !(n.log || []).length && !n.decision && !n.landingFixed;
+    const untouched = (n) => !(n.images || []).length && !n.setpos && !(n.log || []).length && !n.decision && !n.landingFixed && !n.tested;
     for (const n of S.nades) if (n.id.startsWith("cs-d2-") && untouched(n)) delN.push(n.id);
     for (const su of S.setups) if (su.id.startsWith("cs-d2-su-")) delS.push(su.id);
     const byId = new Map(S.nades.map((n) => [n.id, n]));
     for (const n of ALL_SEED) {
       const cur = byId.get(n.id);
       // add new starter nades; refresh an existing one only if you haven't touched it
-      if (!cur || (cur.status === "unknown" && !cur.decision && !cur.landingFixed && !(cur.log || []).length && (cur.images || []).length <= 1 && cur.setpos === n.setpos)) putN.push(n);
+      if (!cur || (cur.status === "unknown" && !cur.decision && !cur.landingFixed && !cur.tested && !(cur.log || []).length && (cur.images || []).length <= 1 && cur.setpos === n.setpos)) putN.push(n);
     }
     // starter nades that were dropped from the list (e.g. no screenshot): remove them unless you practiced them
     const seedIds = new Set(ALL_SEED.map((n) => n.id));
-    for (const n of S.nades) if (/^c[un]-/.test(n.id) && !seedIds.has(n.id) && n.status === "unknown" && !n.decision && !n.landingFixed && !(n.log || []).length) delN.push(n.id);
+    for (const n of S.nades) if (/^c[un]-/.test(n.id) && !seedIds.has(n.id) && n.status === "unknown" && !n.decision && !n.landingFixed && !n.tested && !(n.log || []).length) delN.push(n.id);
     for (const su of SEED_SETUPS.concat(typeof SEED_MORE_SETUPS !== "undefined" ? SEED_MORE_SETUPS : [])) if (!S.setups.some((x) => x.id === su.id)) putS.push(su);
   }
   if (!putN.length && !delN.length && !putS.length && !delS.length) { localStorage.setItem("seed", SEED_KEY); return; }

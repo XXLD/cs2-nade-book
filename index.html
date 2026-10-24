@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CS2 Nade Book</title>
-<link rel="stylesheet" href="style.css?v=20261024d">
+<link rel="stylesheet" href="style.css?v=20261024f">
 </head>
 <body>
 <header>
-  <h1>CS2 Nade Book <small class="ver" title="If this is not the newest build, press Ctrl+F5">build 20261024d</small></h1>
+  <h1>CS2 Nade Book <small class="ver" title="If this is not the newest build, press Ctrl+F5">build 20261024f</small></h1>
   <select id="mapSel"></select><button id="poolBtn" title="Choose which maps are in the rotation">⚙ Map pool</button>
   <div id="poolPanel" hidden></div>
   <div class="filters" id="typeFilters"></div>
@@ -22,6 +22,7 @@
   <select id="ageFilter" title="Hide lineups whose source was last updated longer ago than this"></select>
   <select id="viewSel" title="Which lineups to show: hide the ones you discarded, only the ones you kept, ..."></select>
   <select id="srcSel" title="Where the lineups come from"></select>
+  <select id="testSel" title="Filter by whether you tested the lineup in game"></select>
   <input id="search" type="search" placeholder="Search name / tag / callout…">
   <span class="spacer"></span>
   <button id="addBtn" class="primary">+ New nade</button>
@@ -36,6 +37,7 @@
     <div id="pickBanner" hidden></div>
     <div id="lineupCard" hidden></div>
     <div class="mapTools">
+      <span class="zoombar"><button id="zoomOut" title="Zoom out">−</button><span id="zoomLbl">100%</span><button id="zoomIn" title="Zoom in (or use the mouse wheel)">+</button><button id="zoomReset" class="linkbtn" title="Show the whole map (key: 0)">fit</button></span>
       <label class="linkbtn">Use my own radar image<input type="file" id="radarFile" accept="image/*" hidden></label>
       <button id="radarReset" class="linkbtn">Reset radar</button>
       <label><input type="checkbox" id="showLabels" checked> callouts</label>
@@ -50,19 +52,20 @@
     <div id="sform" hidden></div>
     <div id="pdrill" hidden></div>
     <div id="rdrill" hidden></div>
+    <div id="vdrill" hidden></div>
     <div id="list"></div>
     <div id="detail" hidden></div>
     <div id="form" hidden></div>
   </aside>
 </main>
 
-<script src="maps.js?v=20261024d"></script>
-<script src="callouts-generated.js?v=20261024d"></script>
-<script src="seed-dust2.js?v=20261024d"></script>
-<script src="seed-maps.js?v=20261024d"></script>
-<script src="app.js?v=20261024d"></script>
-<script src="setups.js?v=20261024d"></script>
-<script src="practice.js?v=20261024d"></script>
-<script src="review.js?v=20261024d"></script>
+<script src="maps.js?v=20261024f"></script>
+<script src="callouts-generated.js?v=20261024f"></script>
+<script src="seed-dust2.js?v=20261024f"></script>
+<script src="seed-maps.js?v=20261024f"></script>
+<script src="app.js?v=20261024f"></script>
+<script src="setups.js?v=20261024f"></script>
+<script src="practice.js?v=20261024f"></script>
+<script src="review.js?v=20261024f"></script>
 </body>
 </html>

@@ -165,6 +165,6 @@ function renderSetups() {
 
 $("#tabs").onclick = (ev) => {
   const b = ev.target.closest("button"); if (!b) return;
-  Object.assign(S, { tab: b.dataset.tab, selId: null, editing: null, picking: null, selSetup: null, editSetup: null, practice: null, review: null });
+  Object.assign(S, { tab: b.dataset.tab, selId: null, editing: null, picking: null, selSetup: null, editSetup: null, practice: null, review: null, verify: null });
   refresh();
 };

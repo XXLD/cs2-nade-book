@@ -45,12 +45,30 @@ function similarOf(n) {
   return S.nades.filter((m) => m.id !== n.id && m.map === n.map && m.type === n.type && m.from && m.decision !== "discard" &&
     Math.hypot(m.from.x - n.from.x, m.from.y - n.from.y) <= 22 && Math.hypot(m.to.x - n.to.x, m.to.y - n.to.y) <= 45);
 }
-const decBadge = (n) => (n.decision === "keep" ? `<span class="decTag keepTag">kept</span>` : n.decision === "discard" ? `<span class="decTag discTag">discarded</span>` : "");
+const decBadge = (n) => (n.decision === "keep" ? `<span class="decTag keepTag">kept</span>` : n.decision === "discard" ? `<span class="decTag discTag">discarded</span>` : "") + testBadge(n);
+// "works in game" flag: tested = "ok" | "broken", testedAt = date you set it (a Hit in practice mode sets it to ok)
+const testBadge = (n) => (n.tested === "ok" ? `<span class="decTag keepTag">✓ works \u00b7 ${esc(n.testedAt || "")}</span>` : n.tested === "broken" ? `<span class="decTag discTag">✗ broken \u00b7 ${esc(n.testedAt || "")}</span>` : "");
+const testNote = (n) => (n.tested === "ok" ? ` \u00b7 ✓ tested ${esc(n.testedAt || "")}` : n.tested === "broken" ? ` \u00b7 ✗ broken ${esc(n.testedAt || "")}` : "");
+S.test = localStorage.getItem("test") || "any";
+const testOk = (n) => S.test === "any" || (S.test === "ok" && n.tested === "ok") || (S.test === "broken" && n.tested === "broken") || (S.test === "none" && !n.tested);
+const TEST_OPTIONS = [["any", "Tested: any"], ["ok", "✓ Works"], ["broken", "✗ Broken"], ["none", "Untested"]];
+$("#testSel").innerHTML = TEST_OPTIONS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
+$("#testSel").value = S.test;
+$("#testSel").onchange = (ev) => { S.test = ev.target.value; localStorage.setItem("test", S.test); S.cluster = null; refresh(); };
+document.addEventListener("click", async (ev) => {
+  const b = ev.target.closest("[data-test]"); if (!b) return;
+  ev.stopPropagation(); ev.preventDefault();
+  const n = nadeById(b.dataset.id); if (!n) return;
+  const v = b.dataset.test;
+  if (n.tested === v) { delete n.tested; delete n.testedAt; } else { n.tested = v; n.testedAt = new Date().toISOString().slice(0, 10); }   // click again = clear
+  await dbPut(n); refresh();
+}, true);
 const decButtons = (n) => `<span class="decb"><b class="dec keep ${n.decision === "keep" ? "on" : ""}" data-dec="keep" data-id="${n.id}" title="Keep this lineup">✓</b><b class="dec discard ${n.decision === "discard" ? "on" : ""}" data-dec="discard" data-id="${n.id}" title="Discard this lineup">✗</b></span>`;
 function decisionBlock(n) {
   const sim = similarOf(n);
   return `<div class="row decrow"><button class="dbtn ${n.decision === "keep" ? "on keepOn" : ""}" data-dec="keep" data-id="${n.id}">✓ Keep</button>
       <button class="dbtn ${n.decision === "discard" ? "on discOn" : ""}" data-dec="discard" data-id="${n.id}">✗ Discard</button></div>
+    <div class="row"><button class="dbtn ${n.tested === "ok" ? "on keepOn" : ""}" data-test="ok" data-id="${n.id}" title="You threw it in game and it works">✓ Works in game</button><button class="dbtn ${n.tested === "broken" ? "on discOn" : ""}" data-test="broken" data-id="${n.id}" title="It no longer works (game update, moved object...)">✗ Broken</button></div>
     <div class="row"><button data-fix="${n.id}" title="Then click the map where it really lands">📍 Fix landing spot${n.landingFixed ? " (fixed ✓)" : ""}</button></div>
     <p class="dim" style="font-size:12px">Source: <b>${esc(srcLabel(n))}</b>${n.decision ? ` · marked <b>${n.decision === "keep" ? "kept" : "discarded"}</b>` : ""}</p>` + similarHtml(n, sim);
 }
@@ -81,11 +99,17 @@ function injectReviewBar() {
   const list = $("#list");
   if (S.tab !== "nades" || list.hidden || list.querySelector("#rvBar")) return;
   const st = reviewStats(), shown = panelList();
+  const _vk = S.view; S.view = "active"; const _vis = visible(); S.view = _vk;
+  const nGuess = _vis.filter(guessed).length, nEst = _vis.filter(estimated).length, vq = S.verifyAim ? verifyQueue() : _vis.filter(guessed);
   list.insertAdjacentHTML("afterbegin", `<div id="rvBar">
     <div class="dim" style="font-size:12px;margin-bottom:6px">This map · <b style="color:var(--acc)">${st.kept}</b> kept · <b style="color:#ff6b78">${st.discarded}</b> discarded · <b>${st.todo}</b> to review</div>
     <div class="row"><button id="rvStart" class="primary" ${st.todo ? "" : "disabled"}>▶ Review lineups (${st.todo})</button></div>
+    <div class="row"><button id="vfStart" ${vq.length ? "" : "disabled"}>📍 Verify landing spots (${vq.length})</button></div>
+    <label class="dim" style="font-size:12px;display:flex;gap:6px;align-items:center;margin:2px 0 6px"><input type="checkbox" id="vfAim" ${S.verifyAim ? "checked" : ""} style="width:auto"> also check the aim-line estimates (${nEst})</label>
     <div class="row"><button id="rvKeepAll" ${shown.length ? "" : "disabled"}>✓ Keep all shown (${shown.length})</button><button id="rvDiscAll" ${shown.length ? "" : "disabled"}>✗ Discard all shown (${shown.length})</button></div></div>`);
   $("#rvStart").onclick = startReview;
+  $("#vfStart").onclick = startVerify;
+  $("#vfAim").onchange = (ev) => { S.verifyAim = ev.target.checked; localStorage.setItem("verifyAim", S.verifyAim ? "1" : "0"); refresh(); };
   $("#rvKeepAll").onclick = async () => { if (confirm(`Keep all ${shown.length} lineups currently shown?`)) { await setDecision(shown, "keep"); refresh(); } };
   $("#rvDiscAll").onclick = async () => {
     const target = shown.filter((n) => n.decision !== "keep"), spared = shown.length - target.length;   // never override a lineup you kept on purpose
@@ -195,5 +219,91 @@ document.addEventListener("click", (ev) => {
   ev.stopPropagation(); S.fixLanding = b.dataset.fix; refresh();
 }, true);
 document.addEventListener("keydown", (ev) => {
-  if (ev.key === "Escape" && S.fixLanding) { ev.stopPropagation(); S.fixLanding = null; refresh(); }
+  if (ev.key === "Escape" && S.fixLanding) { ev.stopPropagation(); if (S.verify) endVerify(); else { S.fixLanding = null; refresh(); } }
 }, true);
+
+// ---------- Verify landing spots ----------
+// Steps through lineups whose landing spot is only a guess (landing-approx) - optionally also the aim-line estimates.
+// For each one the map zooms onto the marker and shows the screenshot. Click the real landing spot, or confirm the marker.
+S.verify = null;
+S.verifyAim = localStorage.getItem("verifyAim") === "1";
+const guessed = (n) => !!n.to && !n.landingFixed && (n.tags || []).includes("landing-approx");
+const estimated = (n) => !!n.to && !n.landingFixed && (n.tags || []).includes("landing-aimline");
+function verifyQueue() {
+  const keep = S.view; S.view = "active";                   // never ask about discarded lineups
+  const all = visible(); S.view = keep;
+  return all.filter(guessed).concat(S.verifyAim ? all.filter(estimated) : []);
+}
+const curVerify = () => (S.verify && S.verify.i < S.verify.ids.length ? nadeById(S.verify.ids[S.verify.i]) : null);
+function startVerify() {
+  const ids = verifyQueue().map((n) => n.id);
+  if (!ids.length) return alert("No guessed landing spots left to check with the current filters.");
+  Object.assign(S, { verify: { ids, i: 0, ok: 0, fixed: 0, hist: [] }, review: null, editing: null, picking: null, cluster: null });
+  syncVerify();
+}
+function syncVerify() {
+  const n = curVerify();
+  S.selId = n ? n.id : null; S.fixLanding = n ? n.id : null;
+  if (n) { const z = 3, w = 1000 / z; S.mapView = { z, x: n.to.x - w / 2, y: n.to.y - w / 2 }; }   // zoom onto the marker
+  refresh();
+}
+function endVerify() {
+  Object.assign(S, { verify: null, fixLanding: null, selId: null, mapView: { z: 1, x: 0, y: 0 } });
+  refresh();
+}
+function verifyAdvance() { S.verify.i++; syncVerify(); }
+async function verifyAfterFix(n, prev) {                  // called by the map click handler after you clicked the real spot
+  const v = S.verify; v.hist.push({ id: n.id, prev, i: v.i, act: "set" }); v.fixed++;
+  verifyAdvance();
+}
+async function verifyAct(act) {
+  const v = S.verify, n = curVerify(); if (!v) return;
+  if (act === "end") return endVerify();
+  if (act === "skip") return verifyAdvance();
+  if (act === "undo") {
+    const h = v.hist.pop(); if (!h) return;
+    const m = nadeById(h.id); m.to = h.prev.to; m.tags = h.prev.tags;
+    if (h.prev.fixed === undefined) delete m.landingFixed; else m.landingFixed = h.prev.fixed;
+    await dbPut(m); if (h.act === "set") v.fixed--; else v.ok--;
+    v.i = h.i; return syncVerify();
+  }
+  if (act === "ok" && n) {                                // the marker is already right
+    const prev = { to: { ...n.to }, tags: [...(n.tags || [])], fixed: n.landingFixed };
+    n.landingFixed = true; n.tags = (n.tags || []).filter((t) => !t.startsWith("landing-")); await dbPut(n);
+    v.hist.push({ id: n.id, prev, i: v.i, act: "ok" }); v.ok++; verifyAdvance();
+  }
+}
+function renderVerify() {
+  const v = S.verify, el = $("#vdrill");
+  if (!v) { el.hidden = true; return; }
+  for (const id of ["#list", "#detail", "#form", "#slist", "#sdetail", "#sform", "#pdrill", "#rdrill"]) $(id).hidden = true;
+  $("#pickBanner").hidden = !S.fixLanding; el.hidden = false;
+  const n = curVerify();
+  if (!n) {
+    el.innerHTML = `<h2>Landing spots checked</h2><p><b style="color:var(--acc)">${v.ok}</b> confirmed \u00b7 <b>${v.fixed}</b> moved by you this session.</p>
+      <div class="row"><button id="vfDone" class="primary">Back to the list</button></div>`;
+    $("#vfDone").onclick = endVerify; return;
+  }
+  const pics = imgs(n), pct = Math.round((v.i / v.ids.length) * 100);
+  const first = pics[0] ? pics[0].src : "";
+  const hint = isUtilCover(first, "Aim") ? "In the picture, the <b>right half</b> shows where it lands." : first.indexOf("/cn-") >= 0 ? "In the picture, the <b>left half</b> shows where it lands (the right half is the aim)." : "Look for where the smoke / flash / molly ends up in the picture.";
+  const kind = (n.tags || []).includes("landing-approx") ? "guessed from the name" : "estimated along the aim line";
+  el.innerHTML = `<div class="row"><b>Verify landing spots</b><span class="dim" style="text-align:right">${v.i + 1} / ${v.ids.length}</span></div>
+    <div class="pbar"><div style="width:${pct}%"></div></div>
+    <h2>${esc(n.name)}</h2>
+    <div><span class="tag">${esc(NADE_TYPES[n.type].label)}</span><span class="tag">${esc(n.side)}</span><span class="tag">${esc(srcLabel(n))}</span><span class="tag">landing ${kind}</span></div>
+    <p class="dim">${n.from ? `Thrown from <b>${esc(nearestCallout(n.from.x, n.from.y))}</b> \u00b7 ` : ""}marker is near <b>${esc(nearestCallout(n.to.x, n.to.y))}</b></p>
+    <p style="margin:6px 0"><b>Where does it really land?</b> ${hint} Then <b>click that spot on the map</b>, or confirm the marker if it is already right.</p>
+    ${pics.length ? shotHtml(n, pics[0], 0) : `<div class="noshot">No screenshot.</div>`}
+    <div class="rsticky"><div class="row rbtns"><button data-vf="ok" class="primary">\u2713 Looks right <small>(Enter)</small></button><button data-vf="skip">Skip <small>(S)</small></button></div>
+      <div class="row"><button data-vf="undo" ${v.hist.length ? "" : "disabled"}>\u21b6 Undo <small>(U)</small></button><button data-vf="end">Finish <small>(Esc)</small></button></div></div>`;
+}
+document.addEventListener("click", (ev) => { const b = ev.target.closest("[data-vf]"); if (b && S.verify) verifyAct(b.dataset.vf); });
+document.addEventListener("keydown", (ev) => {
+  if (!S.verify || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName)) return;
+  const k = ev.key.toLowerCase();
+  if (k === "enter" || k === "y") { ev.preventDefault(); verifyAct("ok"); }
+  else if (k === "s" || k === "arrowright") verifyAct("skip");
+  else if (k === "u" || k === "backspace") verifyAct("undo");
+});

@@ -50,7 +50,9 @@ function drillOrder(nades) {
 async function answer(ok) {
   const p = S.practice, n = curNade(); if (!n) return;
   n.log = (n.log || []).concat({ t: Date.now(), ok }).slice(-30);
-  autoStatus(n); await dbPut(n);
+  autoStatus(n);
+  if (ok) { n.tested = "ok"; n.testedAt = new Date().toISOString().slice(0, 10); }   // you just threw it successfully: it works
+  await dbPut(n);
   if (ok) p.hits++; else {
     p.misses++; p.missed.add(n.id);
     if (p.mode === "drill" && (p.requeued[n.id] || 0) < 2) {   // come back to it in ~3 nades
