@@ -50,6 +50,7 @@ TITLE_FIX = {'nomal': 'normal', 'Defalut': 'Default', 'Rretake': 'Retake'}
 
 # ------------------------------------------------------------------ small helpers
 def get(url, binary=False, tries=3):
+    url = url.strip().replace(' ', '%20')           # some sitemap addresses contain stray spaces
     err = None
     for _ in range(tries):
         try:
@@ -118,6 +119,20 @@ def bump_version(path, const):
     new = m.group(1) + m.group(2) + str(int(m.group(3)) + 1) + m.group(4)
     open(path, 'w', encoding='utf8').write(text[:m.start()] + new + text[m.end():])
     return m.group(2) + str(int(m.group(3)) + 1)
+
+
+def bump_build():
+    """New build tag in index.html (the ?v= on every script/stylesheet + the visible 'build ...' text), so browsers fetch the new data."""
+    path = os.path.join(ROOT, 'index.html')
+    text = open(path, encoding='utf8').read()
+    m = re.search(r'build ([0-9]{8})([a-z]?)', text)
+    today = datetime.date.today().strftime('%Y%m%d')
+    letter = chr(ord(m.group(2)) + 1) if (m and m.group(1) == today and m.group(2)) else 'a'
+    new = today + letter
+    if m:
+        text = text.replace(m.group(1) + m.group(2), new)
+    open(path, 'w', encoding='utf8').write(text)
+    return new
 
 
 def load_all():
@@ -268,7 +283,7 @@ def cu_candidates(maps):
     sm = get('https://www.cs2util.com/sitemap.xml') or ''
     out = {}
     for u in re.findall('<url>(.*?)</url>', sm, re.S):
-        loc = re.search('<loc>(.*?)</loc>', u).group(1)
+        loc = re.search('<loc>(.*?)</loc>', u).group(1).strip()
         lm = re.search('<lastmod>(.*?)</lastmod>', u)
         path = re.sub('^https://www.cs2util.com(/(zh|ru|pt|es|de|fr|ja|ko|tr|pl|it)(?=/))?', '', loc)
         p = path.split('/')
@@ -421,13 +436,17 @@ def main():
         if rec:
             built.append(rec)
         time.sleep(0.25)
+    if not built:
+        print('None of them could be built (broken pages or pictures on the site) - nothing written.')
+        return
     ids_d2 = {r['id']: r for r in d2}; ids_more = {r['id']: r for r in more}
     for rec in built:
         (ids_d2 if rec['map'] == 'dust2' else ids_more)[rec['id']] = rec          # replace a refreshed one, append a new one
     write_array(SEED_D2, 'SEED_NADES', list(ids_d2.values()), indent=1)
     write_array(SEED_MORE, 'SEED_MORE', list(ids_more.values()))
     v1, v2 = bump_version(SEED_D2, 'SEED_VERSION'), bump_version(SEED_MORE, 'SEED_MORE_VERSION')
-    print('Done: %d lineups written. Seed versions are now %s / %s - open the app (Ctrl+F5) and they load by themselves.' % (len(built), v1, v2))
+    build = bump_build()
+    print('Done: %d lineups written. Seed versions %s / %s, build %s - open the app (Ctrl+F5) and they load by themselves.' % (len(built), v1, v2, build))
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@
 // Stand spots are computed exactly from each lineup's setpos + the map's radar calibration.
 // Landing spots are mapped from the lineup title -> approximate. Aim screenshots are in shots/dust2/.
 // Every nade carries an "updated" date; the app hides ones older than the freshness filter (default 3 months).
-const SEED_VERSION = "dust2-cs2util-2026-06-v4";
+const SEED_VERSION = "dust2-cs2util-2026-06-v5";
 const SEED_NADES = [
  {
   "id": "cu-d2-xbox-smoke-from-long",
@@ -3377,6 +3377,247 @@ const SEED_NADES = [
    }
   ],
   "updated": "2026-06-06",
+  "source": "cs2util.com"
+ },
+ {
+  "id": "cu-d2-lower-tunnels-retake-flash",
+  "map": "dust2",
+  "name": "Lower tunnels retake flash",
+  "type": "flash",
+  "variant": "standard",
+  "side": "CT",
+  "purpose": "default",
+  "technique": "jump-throw",
+  "status": "unknown",
+  "from": {
+   "x": 488,
+   "y": 332
+  },
+  "to": {
+   "x": 426,
+   "y": 423
+  },
+  "setpos": "setpos -276.031250 1744.032959 -40.736702;setang -18.154573 122.647110 0.000000",
+  "video": "https://www.cs2util.com/dust2/flash/lower-tunnels-retake-flash",
+  "notes": "Hug the recess in Mid doors, aim at the damaged part of the wall, and jump-throw with the left mouse button. Difficulty: Medium.\nSource: cs2util.com (updated 2026-10-24). Verify in game.",
+  "tags": [
+   "cs2util",
+   "mid"
+  ],
+  "images": [
+   {
+    "src": "shots/dust2/lower-tunnels-retake-flash.webp",
+    "label": "Aim"
+   }
+  ],
+  "updated": "2026-10-24",
+  "source": "cs2util.com"
+ },
+ {
+  "id": "cu-d2-b-site-back-plat-molotov",
+  "map": "dust2",
+  "name": "B Site Back Plat Molotov",
+  "type": "molly",
+  "variant": "standard",
+  "side": "Both",
+  "purpose": "default",
+  "technique": "left click",
+  "status": "unknown",
+  "from": {
+   "x": 314,
+   "y": 259
+  },
+  "to": {
+   "x": 184,
+   "y": 144
+  },
+  "setpos": "setpos -1062.030273 2070.032715 129.871246;setang 5.235377 138.498260 0.000000",
+  "video": "https://www.cs2util.com/dust2/molotov/b-site-back-plat-molotov",
+  "notes": "Stand on top of the box at B Doors, tucked into the corner. Air time 9.999s. Difficulty: Easy.\nSource: cs2util.com (updated 2026-10-24). Verify in game. Landing spot estimated along the aim line toward the named target.",
+  "tags": [
+   "cs2util",
+   "bSite",
+   "landing-aimline"
+  ],
+  "images": [
+   {
+    "src": "shots/dust2/b-site-back-plat-molotov.webp",
+    "label": "Aim"
+   }
+  ],
+  "updated": "2026-10-24",
+  "source": "cs2util.com"
+ },
+ {
+  "id": "cu-d2-a-long-smoke-from-a-plat1",
+  "map": "dust2",
+  "name": "A Long Smoke From A Short",
+  "type": "smoke",
+  "variant": "standard",
+  "side": "Both",
+  "purpose": "default",
+  "technique": "left click",
+  "status": "unknown",
+  "from": {
+   "x": 661,
+   "y": 204
+  },
+  "to": {
+   "x": 924,
+   "y": 379
+  },
+  "setpos": "setpos 499.968109 2319.597412 160.918091;setang -20.882591 -33.603992 0.000000",
+  "video": "https://www.cs2util.com/dust2/smoke/a-long-smoke-from-a-plat1",
+  "notes": "Pin Against The A Short Default Position Air time 4.1s. Difficulty: Easy.\nSource: cs2util.com (updated 2026-10-24). Verify in game. Landing spot estimated along the aim line toward the named target.",
+  "tags": [
+   "cs2util",
+   "aLong",
+   "landing-aimline"
+  ],
+  "images": [
+   {
+    "src": "shots/dust2/a-long-smoke-from-a-plat1.webp",
+    "label": "Aim"
+   }
+  ],
+  "updated": "2026-10-24",
+  "source": "cs2util.com"
+ },
+ {
+  "id": "cu-d2-b-site-cutoff-smoke-from-doors1",
+  "map": "dust2",
+  "name": "B Site Ccutoff Smoke From Doors1",
+  "type": "smoke",
+  "variant": "standard",
+  "side": "CT",
+  "purpose": "default",
+  "technique": "left click",
+  "status": "unknown",
+  "from": {
+   "x": 284,
+   "y": 259
+  },
+  "to": {
+   "x": 247,
+   "y": 105
+  },
+  "setpos": "setpos -1194.909912 2070.773926 73.295654;setang -24.048649 103.404945 0.000000",
+  "video": "https://www.cs2util.com/dust2/smoke/b-site-cutoff-smoke-from-doors1",
+  "notes": "Stand still and throw. Air time 5.6s. Difficulty: Easy.\nSource: cs2util.com (updated 2026-10-24). Verify in game. Landing spot estimated along the aim line toward the named target.",
+  "tags": [
+   "cs2util",
+   "b",
+   "landing-aimline"
+  ],
+  "images": [
+   {
+    "src": "shots/dust2/b-site-cutoff-smoke-from-doors1.webp",
+    "label": "Aim"
+   }
+  ],
+  "updated": "2026-10-24",
+  "source": "cs2util.com"
+ },
+ {
+  "id": "cu-d2-ct-spawn-smoke-from-a-site-pit",
+  "map": "dust2",
+  "name": "CT Spawn Smoke From A Site Pit 1",
+  "type": "smoke",
+  "variant": "standard",
+  "side": "T",
+  "purpose": "execute",
+  "technique": "jump-throw",
+  "status": "unknown",
+  "from": {
+   "x": 765,
+   "y": 556
+  },
+  "to": {
+   "x": 639,
+   "y": 224
+  },
+  "setpos": "setpos 969.842407 734.246216 71.022530;setang -18.425047 142.702393 0.000000",
+  "video": "https://www.cs2util.com/dust2/smoke/ct-spawn-smoke-from-a-site-pit",
+  "notes": "Stand still and jump throw. Air time 9.999s. Difficulty: Easy.\nSource: cs2util.com (updated 2026-10-24). Verify in game.",
+  "tags": [
+   "cs2util",
+   "mid"
+  ],
+  "images": [
+   {
+    "src": "shots/dust2/ct-spawn-smoke-from-a-site-pit.webp",
+    "label": "Aim"
+   }
+  ],
+  "updated": "2026-10-24",
+  "source": "cs2util.com"
+ },
+ {
+  "id": "cu-d2-ct-spawn-smoke-from-a-site-pit-2",
+  "map": "dust2",
+  "name": "CT Spawn Smoke From Long",
+  "type": "smoke",
+  "variant": "standard",
+  "side": "T",
+  "purpose": "execute",
+  "technique": "jump-throw",
+  "status": "unknown",
+  "from": {
+   "x": 740,
+   "y": 544
+  },
+  "to": {
+   "x": 639,
+   "y": 224
+  },
+  "setpos": "setpos 860.031250 790.051758 64.470573;setang -16.059919 143.278946 0.000000",
+  "video": "https://www.cs2util.com/dust2/smoke/ct-spawn-smoke-from-a-site-pit-2",
+  "notes": "Stand still and jump throw. Air time 9.999s. Difficulty: Medium.\nSource: cs2util.com (updated 2026-10-24). Verify in game.",
+  "tags": [
+   "cs2util",
+   "mid"
+  ],
+  "images": [
+   {
+    "src": "shots/dust2/ct-spawn-smoke-from-a-site-pit-2.webp",
+    "label": "Aim"
+   }
+  ],
+  "updated": "2026-10-24",
+  "source": "cs2util.com"
+ },
+ {
+  "id": "cu-d2-window-smoke-from-top-mid",
+  "map": "dust2",
+  "name": "Window Smoke From Top Mid",
+  "type": "smoke",
+  "variant": "standard",
+  "side": "Both",
+  "purpose": "default",
+  "technique": "left click",
+  "status": "unknown",
+  "from": {
+   "x": 556,
+   "y": 651
+  },
+  "to": {
+   "x": 283,
+   "y": 136
+  },
+  "setpos": "setpos 27.266823 308.031494 63.307926;setang -26.262976 117.887276 0.000000",
+  "video": "https://www.cs2util.com/dust2/smoke/window-smoke-from-top-mid",
+  "notes": "Hug the wall Air time 7.5s. Difficulty: Medium.\nSource: cs2util.com (updated 2026-10-24). Verify in game. Landing spot estimated along the aim line toward the named target.",
+  "tags": [
+   "cs2util",
+   "landing-aimline"
+  ],
+  "images": [
+   {
+    "src": "shots/dust2/window-smoke-from-top-mid.webp",
+    "label": "Aim"
+   }
+  ],
+  "updated": "2026-10-24",
   "source": "cs2util.com"
  }
 ];
