@@ -1,4 +1,4 @@
-# CS2 Nade Book
+# CS Nadebook
 
 A personal grenade lineup book for Counter-Strike 2. It runs entirely in the browser, with no server and no install.
 

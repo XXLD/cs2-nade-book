@@ -179,3 +179,8 @@ pre.cmd { background:#0c0e11; padding:6px 8px; border-radius:6px; overflow:auto;
 #map .mk.sel circle, #map .mk.sel path { stroke-width:3; }
 #map .branch { stroke-width:1.6; stroke-dasharray:3 3; opacity:.95; pointer-events:none; }
 #map .bdot { stroke:#0c0e11; stroke-width:1.5; pointer-events:none; }
+
+/* hover preview of one lineup's throw */
+#map .pvline { stroke-width:4; stroke-linecap:round; opacity:.95; pointer-events:none; filter:drop-shadow(0 0 3px #000); }
+#map .pvfrom { stroke:#fff; stroke-width:2.5; stroke-linejoin:round; pointer-events:none; }
+#map .pvring { fill:none; stroke-width:4; pointer-events:none; filter:drop-shadow(0 0 3px #000); }

@@ -1,11 +1,11 @@
-/* CS2 Nade Book - local-first. Data lives in IndexedDB (nades) + localStorage (settings). */
+/* CS Nadebook - local-first. Data lives in IndexedDB (nades) + localStorage (settings). */
 "use strict";
 
 // ---------- errors: never fail silently ----------
 function showFatal(e) {
   let b = document.getElementById("fatal");
   if (!b) { b = document.createElement("div"); b.id = "fatal"; document.body.prepend(b); }
-  b.textContent = "Something went wrong: " + (e && e.message ? e.message : e) + " - try Ctrl+F5, and close any other Nade Book tabs.";
+  b.textContent = "Something went wrong: " + (e && e.message ? e.message : e) + " - try Ctrl+F5, and close any other CS Nadebook tabs.";
 }
 window.addEventListener("error", (ev) => showFatal(ev.error || ev.message));
 window.addEventListener("unhandledrejection", (ev) => showFatal(ev.reason));
@@ -21,7 +21,7 @@ function openDB() {
     };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
-    r.onblocked = () => showFatal("the database is in use by another Nade Book tab");
+    r.onblocked = () => showFatal("the database is in use by another CS Nadebook tab");
   });
 }
 const tx = (mode, store = STORE) => db.transaction(store, mode).objectStore(store);
@@ -225,6 +225,17 @@ function spread(items) {
   }
   return pos;
 }
+// hover preview of one lineup: stand-spot arrow, line of flight and a ring on the landing spot, drawn on top of the map
+function drawPreview(id) {
+  const layer = document.getElementById("previewLayer"); if (!layer) return;
+  const n = id ? nadeById(id) : null;
+  if (!n || !n.to) { layer.innerHTML = ""; return; }
+  const c = NADE_TYPES[n.type].color;
+  let h = "";
+  if (n.from) h += `<line class="pvline" stroke="${c}" x1="${n.from.x}" y1="${n.from.y}" x2="${n.to.x}" y2="${n.to.y}"/><path class="pvfrom" fill="${c}" d="M${n.from.x} ${n.from.y - 15} l13 25 h-26 z"/>`;
+  h += `<circle class="pvring" stroke="${c}" cx="${n.to.x}" cy="${n.to.y}" r="14"/><circle cx="${n.to.x}" cy="${n.to.y}" r="3.5" fill="${c}"/>`;
+  layer.innerHTML = h;
+}
 // branches: a merged icon (hovered or clicked) shows a thin line to each member's exact landing spot
 function drawBranches() {
   const layer = document.getElementById("branchLayer"); if (!layer) return;
@@ -271,6 +282,7 @@ function renderMap() {
       ${k > 1 ? `<circle class="cnt" cx="${p.x + 11}" cy="${p.y - 11}" r="8"/><text class="cntTxt" x="${p.x + 11}" y="${p.y - 7.5}">${k}</text>` : ""}</g>`;
   }).join("");
   if (su) h += setupOverlay(su);
+  h += `<g id="previewLayer"></g>`;
   // in-progress points while editing
   const e = S.editing;
   if (e) {
@@ -362,7 +374,11 @@ function renderLineupCard() {
     el.classList.add("wide");
     el.innerHTML = `<button class="cardx" title="Close">\u00d7</button>` + clusterCardHtml(ids);
     el.querySelector(".cardx").onclick = () => { S.cardClosed = "cluster"; S.hoverIds = null; el.hidden = true; };
-    el.querySelectorAll(".citem").forEach((c) => (c.onclick = () => select(c.dataset.id)));
+    el.querySelectorAll(".citem").forEach((c) => {
+      c.onclick = () => select(c.dataset.id);
+      c.onmouseenter = () => drawPreview(c.dataset.id);
+      c.onmouseleave = () => drawPreview(null);
+    });
     return placeCard(el, pos);
   }
   el.classList.remove("wide");
@@ -502,9 +518,25 @@ $("#map").addEventListener("click", async (ev) => {
   const ids = g.dataset.ids.split(",");
   if (S.editSetup) return addStep(ids[0]);                // while building a setup: click = add step
   if (S.tab === "setups") { S.tab = "nades"; S.selSetup = null; }
-  if (ids.length === 1) return select(ids[0]);
+  if (ids.length === 1) {
+    if (S.selId === ids[0]) {                             // same nade again: toggle its popup window
+      const open = !$("#lineupCard").hidden && S.cardClosed !== ids[0];
+      S.cardClosed = open ? ids[0] : null; S.hoverId = null; S.noHover = open ? ids[0] : null;
+      return renderLineupCard();
+    }
+    S.cardClosed = null; S.noHover = null;
+    return select(ids[0]);
+  }
+  if (S.cluster && !S.selId && S.cluster.join(",") === ids.join(",")) {   // same merged icon again: toggle its popup
+    const open = !$("#lineupCard").hidden && S.cardClosed !== "cluster";
+    S.cardClosed = open ? "cluster" : null; S.hoverIds = null; S.noHoverKey = open ? ids.join(",") : null;
+    return renderLineupCard();
+  }
+  S.noHoverKey = null;
   S.cluster = ids; S.clusterPos = { x: +g.dataset.x, y: +g.dataset.y }; S.cardClosed = null; S.selId = null; S.editing = null; S.picking = null; refresh();   // several nades here: list them + popup
 });
+$("#list").addEventListener("mouseover", (ev) => { const it = ev.target.closest(".item"); drawPreview(it ? it.dataset.id : null); });
+$("#list").addEventListener("mouseleave", () => drawPreview(null));
 $("#list").addEventListener("click", (ev) => {
   if (ev.target.closest("#clearCluster")) { S.cluster = null; return refresh(); }
   if (ev.target.closest("#showOld")) { S.age = "0"; $("#ageFilter").value = "0"; localStorage.setItem("age", "0"); return refresh(); }
@@ -521,14 +553,18 @@ $("#markMode").onchange = (ev) => { S.mode = ev.target.value; localStorage.setIt
 $("#map").addEventListener("mouseover", (ev) => {
   const g = ev.target.closest(".mk");
   const ids = g ? g.dataset.ids.split(",") : null;
-  const one = ids && ids.length === 1 ? ids[0] : null, many = ids && ids.length > 1 ? ids : null;
+  let one = ids && ids.length === 1 ? ids[0] : null, many = ids && ids.length > 1 ? ids : null;
   const key = (many || []).join(",");
-  if (one !== S.hoverId || key !== (S.hoverIds || []).join(",")) {
+  if (one !== S.noHover && key !== S.noHoverKey) { S.noHover = null; S.noHoverKey = null; }   // left the icon: hover works again
+  if (one && one === S.noHover) one = null;
+  if (many && key === S.noHoverKey) many = null;
+  const key2 = (many || []).join(",");
+  if (one !== S.hoverId || key2 !== (S.hoverIds || []).join(",")) {
     S.hoverId = one; S.hoverIds = many; S.hoverPos = many ? { x: +g.dataset.x, y: +g.dataset.y } : null;
     drawBranches(); renderLineupCard();
   }
 });
-$("#map").addEventListener("mouseleave", () => { if (S.hoverId || S.hoverIds) { S.hoverId = null; S.hoverIds = null; drawBranches(); renderLineupCard(); } });
+$("#map").addEventListener("mouseleave", () => { S.noHover = null; S.noHoverKey = null; if (S.hoverId || S.hoverIds) { S.hoverId = null; S.hoverIds = null; drawBranches(); renderLineupCard(); } });
 $("#xonly").checked = S.xonly;
 $("#xonly").onchange = (ev) => { S.xonly = ev.target.checked; localStorage.setItem("xonly", S.xonly ? "1" : "0"); S.cluster = null; refresh(); };
 $("#showLabels").onchange = renderMap;
@@ -592,7 +628,7 @@ $("#importFile").onchange = async (ev) => {
     for (const n of data.nades || []) { await dbPut(n); const i = S.nades.findIndex((x) => x.id === n.id); i >= 0 ? (S.nades[i] = n) : S.nades.push(n); }
     for (const s of data.setups || []) { await sPut(s); const i = S.setups.findIndex((x) => x.id === s.id); i >= 0 ? (S.setups[i] = s) : S.setups.push(s); }
     alert(`Imported ${(data.nades || []).length} nades, ${(data.setups || []).length} setups.`);
-  } catch { alert("Not a valid Nade Book file."); }
+  } catch { alert("Not a valid CS Nadebook file."); }
   ev.target.value = ""; refresh();
 };
 
