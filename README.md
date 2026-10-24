@@ -2,7 +2,9 @@
 
 A personal grenade lineup book for Counter-Strike 2. It runs entirely in the browser, with no server and no install.
 
-**Open it:** https://xxld.github.io/cs2-nade-book/ (or download the folder and double-click `start.bat` / `index.html`).
+**Open it:** https://cs2-nade-book.xxld.workers.dev (Cloudflare) or https://xxld.github.io/cs2-nade-book/ (GitHub Pages) - both always have the same version. You can also download the folder and double-click `start.bat` / `index.html`.
+
+Each address keeps its own browser data (your keep/discard choices, tested flags, own nades). Use **Export** on one and **Import** on the other to move them.
 
 ## What it does
 - Radar map for every active-duty map (Ancient, Anubis, Cache, Dust II, Inferno, Mirage, Nuke) with all lineups on it.
