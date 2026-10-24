@@ -27,8 +27,10 @@ function openDB() {
 const tx = (mode, store = STORE) => db.transaction(store, mode).objectStore(store);
 const reqP = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
 const dbAll = () => reqP(tx("readonly").getAll());
-const dbPut = (n) => reqP(tx("readwrite").put(n));
-const dbDel = (id) => reqP(tx("readwrite").delete(id));
+// every save you make counts as a change since the last backup (starter-data seeding uses bulk() and is not counted)
+const markDirty = () => { try { localStorage.setItem("dirty", String((+localStorage.getItem("dirty") || 0) + 1)); } catch {} };
+const dbPut = (n) => (markDirty(), reqP(tx("readwrite").put(n)));
+const dbDel = (id) => (markDirty(), reqP(tx("readwrite").delete(id)));
 function bulk(store, puts, dels) {
   return new Promise((res, rej) => {
     const t = db.transaction(store, "readwrite"), os = t.objectStore(store);
@@ -38,8 +40,8 @@ function bulk(store, puts, dels) {
   });
 }
 const sAll = () => reqP(tx("readonly", SSTORE).getAll());
-const sPut = (s) => reqP(tx("readwrite", SSTORE).put(s));
-const sDel = (id) => reqP(tx("readwrite", SSTORE).delete(id));
+const sPut = (s) => (markDirty(), reqP(tx("readwrite", SSTORE).put(s)));
+const sDel = (id) => (markDirty(), reqP(tx("readwrite", SSTORE).delete(id)));
 
 // saved age filter (older versions stored days: 92/183/366 -> 3/6/12 months). Default: 12 months.
 function loadAge() {
@@ -528,6 +530,7 @@ async function save() {
 
 // ---------- wiring ----------
 function refresh() {
+  if (typeof backupBanner === "function" && db) { backupBanner(); renderBackupInfo(); }
   if (!S.editing) $("#form").dataset.eid = "";
   renderMap(); renderList(); renderDetail(); renderForm(); renderSetups(); renderPractice(); renderReview(); renderVerify(); renderLineupCard();
 }
@@ -686,19 +689,60 @@ $("#poolPanel").addEventListener("click", (ev) => {
   buildMapSelect(); renderPool(); refresh();
 });
 
-$("#exportBtn").onclick = () => {
-  const blob = new Blob([JSON.stringify({ version: 2, nades: S.nades, setups: S.setups }, null, 1)], { type: "application/json" });
+// ---------- backup ----------
+// Your keep/discard choices, tested flags, fixed landing spots and own nades live only in this browser. A backup file keeps them safe.
+const DAY = 864e5, lsGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+function backupBanner() {
+  const el = $("#backupBar"), dirty = +lsGet("dirty") || 0, last = +lsGet("lastBackup") || 0, snooze = +lsGet("backupSnooze") || 0;
+  const age = last ? Math.floor((Date.now() - last) / DAY) : null;
+  const due = dirty >= 25 || (dirty > 0 && (age === null || age >= 7));
+  if (!due || Date.now() < snooze) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = `<span>\u26a0 <b>${dirty} change${dirty === 1 ? "" : "s"}</b> of yours ${age === null ? "have never been backed up" : `since the last backup (${age} day${age === 1 ? "" : "s"} ago)`}. They live only in this browser.</span>
+    <button id="bkNow" class="primary">Back up now</button><button id="bkLater">Later</button>`;
+  $("#bkNow").onclick = doBackup;
+  $("#bkLater").onclick = () => { try { localStorage.setItem("backupSnooze", String(Date.now() + DAY)); } catch {} backupBanner(); };
+}
+function doBackup() {
+  const blob = new Blob([JSON.stringify({ version: 2, saved: new Date().toISOString(), nades: S.nades, setups: S.setups }, null, 1)], { type: "application/json" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
   a.download = `nadebook-${new Date().toISOString().slice(0, 10)}.json`; a.click();
-};
+  try { localStorage.setItem("lastBackup", String(Date.now())); localStorage.setItem("dirty", "0"); } catch {}
+  backupBanner(); renderBackupInfo();
+}
+function renderBackupInfo() {
+  const last = +lsGet("lastBackup") || 0, dirty = +lsGet("dirty") || 0;
+  $("#exportBtn").title = last ? `Last backup ${new Date(last).toLocaleDateString()} \u00b7 ${dirty} change${dirty === 1 ? "" : "s"} since` : "Save all your choices to a file (never backed up yet)";
+  $("#exportBtn").textContent = dirty ? `Back up (${dirty})` : "Back up";
+}
+$("#exportBtn").onclick = doBackup;
 $("#importBtn").onclick = () => $("#importFile").click();
 $("#importFile").onchange = async (ev) => {
   const f = ev.target.files[0]; if (!f) return;
   try {
     const data = JSON.parse(await f.text());
-    for (const n of data.nades || []) { await dbPut(n); const i = S.nades.findIndex((x) => x.id === n.id); i >= 0 ? (S.nades[i] = n) : S.nades.push(n); }
-    for (const s of data.setups || []) { await sPut(s); const i = S.setups.findIndex((x) => x.id === s.id); i >= 0 ? (S.setups[i] = s) : S.setups.push(s); }
-    alert(`Imported ${(data.nades || []).length} nades, ${(data.setups || []).length} setups.`);
+    // Merge: a choice you already made in this browser is kept; choices only the file has are added.
+    const MINE = ["decision", "tested", "testedAt", "landingFixed", "log"];
+    let added = 0, filled = 0, kept = 0;
+    const putN = [], putS = [];
+    for (const n of data.nades || []) {
+      const cur = S.nades.find((x) => x.id === n.id);
+      if (!cur) { S.nades.push(n); putN.push(n); added++; continue; }
+      let changed = false;
+      for (const k of MINE) {
+        if (n[k] === undefined || n[k] === null) continue;
+        if (cur[k] === undefined || cur[k] === null || (Array.isArray(cur[k]) && !cur[k].length)) {
+          cur[k] = n[k]; changed = true;
+          if (k === "landingFixed" && n.to) { cur.to = n.to; cur.tags = n.tags; }   // the fixed landing spot comes along
+        } else if (JSON.stringify(cur[k]) !== JSON.stringify(n[k])) kept++;
+      }
+      if (n.images && cur.images && n.images.length > cur.images.length) { cur.images = n.images; changed = true; }   // pasted screenshots
+      if (changed) { putN.push(cur); filled++; }
+    }
+    for (const s of data.setups || []) if (!S.setups.some((x) => x.id === s.id)) { S.setups.push(s); putS.push(s); added++; }
+    if (putN.length) await bulk(STORE, putN);
+    if (putS.length) await bulk(SSTORE, putS);
+    alert(`Imported: ${added} new, ${filled} lineups updated with your choices from the file, ${kept} conflicts where your current choice was kept.`);
   } catch { alert("Not a valid CS2 Nade Book file."); }
   ev.target.value = ""; refresh();
 };
@@ -708,6 +752,7 @@ $("#importFile").onchange = async (ev) => {
     db = await openDB();
     S.nades = await dbAll();
     S.setups = await sAll();
+    backupBanner(); renderBackupInfo();
     refresh();                       // show what is already saved right away
     await seedStarterData();         // then add / refresh the starter lineups in a single batch
     refresh();

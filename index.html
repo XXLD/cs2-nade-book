@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CS2 Nade Book</title>
-<link rel="stylesheet" href="style.css?v=20261025a">
+<link rel="stylesheet" href="style.css?v=20261025b">
 </head>
 <body>
 <header>
-  <h1>CS2 Nade Book <small class="ver" title="If this is not the newest build, press Ctrl+F5">build 20261025a</small></h1>
+  <h1>CS2 Nade Book <small class="ver" title="If this is not the newest build, press Ctrl+F5">build 20261025b</small></h1>
   <select id="mapSel"></select><button id="poolBtn" title="Choose which maps are in the rotation">⚙ Map pool</button>
   <div id="poolPanel" hidden></div>
   <div class="filters" id="typeFilters"></div>
@@ -26,10 +26,11 @@
   <input id="search" type="search" placeholder="Search name / tag / callout…">
   <span class="spacer"></span>
   <button id="addBtn" class="primary">+ New nade</button>
-  <button id="exportBtn">Export</button>
-  <button id="importBtn">Import</button>
+  <button id="exportBtn">Back up</button>
+  <button id="importBtn" title="Load a backup file: your choices in it are added, nothing you decided here is overwritten">Restore</button>
   <input type="file" id="importFile" accept=".json" hidden>
 </header>
+<div id="backupBar" hidden></div>
 
 <main>
   <section id="mapWrap">
@@ -59,13 +60,13 @@
   </aside>
 </main>
 
-<script src="maps.js?v=20261025a"></script>
-<script src="callouts-generated.js?v=20261025a"></script>
-<script src="seed-dust2.js?v=20261025a"></script>
-<script src="seed-maps.js?v=20261025a"></script>
-<script src="app.js?v=20261025a"></script>
-<script src="setups.js?v=20261025a"></script>
-<script src="practice.js?v=20261025a"></script>
-<script src="review.js?v=20261025a"></script>
+<script src="maps.js?v=20261025b"></script>
+<script src="callouts-generated.js?v=20261025b"></script>
+<script src="seed-dust2.js?v=20261025b"></script>
+<script src="seed-maps.js?v=20261025b"></script>
+<script src="app.js?v=20261025b"></script>
+<script src="setups.js?v=20261025b"></script>
+<script src="practice.js?v=20261025b"></script>
+<script src="review.js?v=20261025b"></script>
 </body>
 </html>

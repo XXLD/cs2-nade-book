@@ -200,3 +200,7 @@ pre.cmd { background:#0c0e11; padding:6px 8px; border-radius:6px; overflow:auto;
 #vdrill .rsticky { position:sticky; bottom:-10px; background:var(--bg); padding:8px 0 4px; margin-top:8px; border-top:1px solid var(--line); z-index:3; }
 #vdrill .rbtns button { padding:12px 6px; font-size:15px; } #vdrill button small { opacity:.6; font-weight:400; }
 .item.broken { border-left:3px solid #ff4d5e; }
+
+/* backup reminder */
+#backupBar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:7px 12px; background:#3a2e12; border-bottom:1px solid #6b5420; color:#ffd98a; font-size:13px; }
+#backupBar span { flex:1; min-width:200px; } #backupBar[hidden] { display:none; }
