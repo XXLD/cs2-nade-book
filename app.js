@@ -1,11 +1,11 @@
-/* CS Nadebook - local-first. Data lives in IndexedDB (nades) + localStorage (settings). */
+/* CS2 Nade Book - local-first. Data lives in IndexedDB (nades) + localStorage (settings). */
 "use strict";
 
 // ---------- errors: never fail silently ----------
 function showFatal(e) {
   let b = document.getElementById("fatal");
   if (!b) { b = document.createElement("div"); b.id = "fatal"; document.body.prepend(b); }
-  b.textContent = "Something went wrong: " + (e && e.message ? e.message : e) + " - try Ctrl+F5, and close any other CS Nadebook tabs.";
+  b.textContent = "Something went wrong: " + (e && e.message ? e.message : e) + " - try Ctrl+F5, and close any other CS2 Nade Book tabs.";
 }
 window.addEventListener("error", (ev) => showFatal(ev.error || ev.message));
 window.addEventListener("unhandledrejection", (ev) => showFatal(ev.reason));
@@ -21,7 +21,7 @@ function openDB() {
     };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
-    r.onblocked = () => showFatal("the database is in use by another CS Nadebook tab");
+    r.onblocked = () => showFatal("the database is in use by another CS2 Nade Book tab");
   });
 }
 const tx = (mode, store = STORE) => db.transaction(store, mode).objectStore(store);
@@ -628,7 +628,7 @@ $("#importFile").onchange = async (ev) => {
     for (const n of data.nades || []) { await dbPut(n); const i = S.nades.findIndex((x) => x.id === n.id); i >= 0 ? (S.nades[i] = n) : S.nades.push(n); }
     for (const s of data.setups || []) { await sPut(s); const i = S.setups.findIndex((x) => x.id === s.id); i >= 0 ? (S.setups[i] = s) : S.setups.push(s); }
     alert(`Imported ${(data.nades || []).length} nades, ${(data.setups || []).length} setups.`);
-  } catch { alert("Not a valid CS Nadebook file."); }
+  } catch { alert("Not a valid CS2 Nade Book file."); }
   ev.target.value = ""; refresh();
 };
 

@@ -1,6 +1,6 @@
 # Ancient smokes
 
-From the CS Nadebook data, as of 2026-10-06. **77 smokes** (T 45, CT 32), **27 with a real crosshair shot** (marked 🎯). Stand spots are exact (from the setpos); the landing spot is matched from the lineup name and can be off. Paste the setpos line into the console of a practice server to stand on the exact spot with the exact crosshair angle. Lineups older than 12 months are marked (old) - verify them in game.
+From the CS2 Nade Book data, as of 2026-10-06. **77 smokes** (T 45, CT 32), **27 with a real crosshair shot** (marked 🎯). Stand spots are exact (from the setpos); the landing spot is matched from the lineup name and can be off. Paste the setpos line into the console of a practice server to stand on the exact spot with the exact crosshair angle. Lineups older than 12 months are marked (old) - verify them in game.
 
 ## T side (45)
 
