@@ -83,10 +83,13 @@ function throwChips(n) {
   const t = (n.technique || "").toLowerCase(), line = ((n.notes || "").split("\n")[0] || "").toLowerCase();
   const btn = t.includes("left+right") ? "Left+Right click" : t.includes("right") ? "Right click" : "Left click";
   let move = "Standing";
-  const mv = /movement: (\w+)/.exec(line);
-  if (t.startsWith("run") || /\brun/.test(line) || (mv && mv[1].startsWith("run"))) move = /one step/.test(line) ? "Run 1 step" : /two steps/.test(line) ? "Run 2 steps" : /four steps/.test(line) ? "Run 4 steps" : "Running";
-  else if (t.startsWith("crouch") || /crouch/.test(line)) move = "Crouching";
-  else if (mv && mv[1].startsWith("walk")) move = "Walking";
+  const mv = /movement: ([a-z ]+)/.exec(line), mvs = mv ? mv[1] : "";
+  const shiftWalk = /shift|walk/.test(line) || t.startsWith("walk") || mvs.startsWith("walk") || /crouched walk/.test(mvs);
+  if (/crouched walk/.test(mvs)) move = "Crouch-walk (Shift + Ctrl)";
+  else if (shiftWalk) move = /tap w/.test(line) ? "Shift-walk, tap W" : "Shift-walk (hold Shift)";
+  else if (/tap w|press w/.test(line)) move = "Tap W (don't hold)";
+  else if (t.startsWith("run") || /run/.test(line) || /hold w/.test(line) || mvs.startsWith("run")) move = /one step/.test(line) ? "Run 1 step" : /two steps/.test(line) ? "Run 2 steps" : /four steps/.test(line) ? "Run 4 steps" : "Running";
+  else if (t.startsWith("crouch") || /crouch|squat/.test(line) || mvs.startsWith("crouch")) move = "Crouching";
   return [t.includes("jump") ? "Jump throw" : "Throw", move, btn];
 }
 const chipsHtml = (n) => `<span class="chips">${throwChips(n).map((c) => `<span class="chip2">${esc(c)}</span>`).join("")}</span>`;
